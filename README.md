@@ -6,6 +6,6 @@ Create an "Editor" folder anywhere in your project and copy the QuickSceneSwitch
 
 Find the panel under Window > Utilities.
 
-<img src="https://raw.githubusercontent.com/realitymatters/quick-scene-switcher/main/screenshot.png" width=395 align=center>
+<img src="https://raw.githubusercontent.com/realitymatters/quick-scene-switcher/main/screenshot.png" width=494 align=center>
 
 [Screenshot quick scene switcher panel](screenshot.png)
