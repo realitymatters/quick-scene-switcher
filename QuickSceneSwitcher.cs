@@ -33,10 +33,8 @@ public class QuickSceneSwitcher : EditorWindow
     [SerializeField]
     private string _lastOpenScene;
 
-
     private void Init()
     {
-        // Debug.Log("Init");
         _allScenes = FindAssetsByType<SceneAsset>("Scene");
 
         EditorBuildSettingsScene[] buildSettingsScenes = EditorBuildSettings.scenes;
@@ -51,13 +49,12 @@ public class QuickSceneSwitcher : EditorWindow
             _buildScenes.Add(new AssetNamePath { name = nameFromPath(s.path), path = s.path, enabled = s.enabled });
 
             if (s.enabled && string.IsNullOrEmpty(_firstScene)) _firstScene = s.path;
-
         }
-
     }
 
     Vector2 _scrollPos;
     bool _buildOnly = true;
+    bool _buildEnabledOnly = true;
 
     void OnGUI()
     {
@@ -70,10 +67,8 @@ public class QuickSceneSwitcher : EditorWindow
 
     private void drawGUI()
     {
-
         if (!EditorApplication.isPlaying)
         {
-
             if (GUILayout.Button("▶ PLAY FIRST ACTIVE SCENE"))
             {
                 _lastOpenScene = EditorSceneManager.GetActiveScene().path;
@@ -91,8 +86,8 @@ public class QuickSceneSwitcher : EditorWindow
                 AssetDatabase.OpenAsset(AssetDatabase.LoadAssetAtPath<SceneAsset>(_lastOpenScene));
             }
         }
-        GUILayout.BeginHorizontal();
 
+        GUILayout.BeginHorizontal();
         if (GUILayout.Button("Open build settings"))
         {
             EditorWindow.GetWindow(System.Type.GetType("UnityEditor.BuildPlayerWindow,UnityEditor"));
@@ -101,11 +96,13 @@ public class QuickSceneSwitcher : EditorWindow
         {
             Init();
         }
-
         GUILayout.EndHorizontal();
 
         GUILayout.Space(10);
+        GUILayout.BeginHorizontal();
         _buildOnly = GUILayout.Toggle(_buildOnly, "Only show scenes in build");
+        _buildEnabledOnly = GUILayout.Toggle(_buildEnabledOnly, "Scenes enabled in build");
+        GUILayout.EndHorizontal();
 
         GUILayout.Space(10);
         List<AssetNamePath> assetList = _buildScenes;
@@ -121,43 +118,42 @@ public class QuickSceneSwitcher : EditorWindow
         for (int i = 0; i < assetList.Count; i++)
         {
             AssetNamePath scene = assetList[i];
+            if (_buildEnabledOnly && !scene.enabled)
+                continue;
 
             string label = scene.name;
 
             if (showEnabledState)
             {
-
                 label = (scene.enabled ? "[✓] " : "[✗] ") + label;
                 if (scene.path == _firstScene)
                     label += " (FIRST)";
-
-
             }
 
             EditorGUILayout.LabelField(label, EditorStyles.boldLabel);
 
             GUILayout.BeginHorizontal();
-           
 
             int editorSceneIndex = 0;
-
             bool sceneIsOpen = false;
 
-                // is scene open at the moment?
-                for (int s = 0, l = EditorSceneManager.sceneCount; s < l; s++)
+            // is scene open at the moment?
+            for (int s = 0, l = EditorSceneManager.sceneCount; s < l; s++)
+            {
+                if (EditorSceneManager.GetSceneAt(s).name == scene.name)
                 {
-                    if (EditorSceneManager.GetSceneAt(s).name == scene.name)
-                    {
-                        sceneIsOpen = true;
-                        editorSceneIndex = s;
-                        break;
-                    }
+                    sceneIsOpen = true;
+                    editorSceneIndex = s;
+                    break;
                 }
+            }
 
             if (!sceneIsOpen && GUILayout.Button("Open"))
             {
                 AssetDatabase.OpenAsset(AssetDatabase.LoadAssetAtPath(scene.path, typeof(SceneAsset)) as SceneAsset);
             }
+            else if (EditorSceneManager.sceneCount > 1 && GUILayout.Button("Close Others")) // fast way to close all other scenes but this one
+                AssetDatabase.OpenAsset(AssetDatabase.LoadAssetAtPath(scene.path, typeof(SceneAsset)) as SceneAsset);
             if (!sceneIsOpen && GUILayout.Button("Open ++"))
             {
                 EditorSceneManager.OpenScene(scene.path, OpenSceneMode.Additive);
@@ -166,7 +162,7 @@ public class QuickSceneSwitcher : EditorWindow
             {
                 EditorSceneManager.CloseScene(EditorSceneManager.GetSceneAt(editorSceneIndex), true);
             }
-            
+
             if (GUILayout.Button("Ping"))
             {
                 EditorGUIUtility.PingObject(AssetDatabase.LoadAssetAtPath(scene.path, typeof(SceneAsset)) as SceneAsset);
@@ -175,13 +171,11 @@ public class QuickSceneSwitcher : EditorWindow
             {
                 SceneAsset sa = AssetDatabase.LoadAssetAtPath(scene.path, typeof(SceneAsset)) as SceneAsset;
                 Selection.activeObject = sa;
-                // EditorGUIUtility.PingObject(sa);
             }
 
             GUILayout.EndHorizontal();
             GUILayout.Space(10);
         }
-
     }
 
     private static List<AssetNamePath> FindAssetsByType<T>(string typeName) where T : UnityEngine.Object
